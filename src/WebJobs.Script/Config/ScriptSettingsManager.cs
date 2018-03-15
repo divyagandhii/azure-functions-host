@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Azure.WebJobs.Script.Config
@@ -9,16 +10,19 @@ namespace Microsoft.Azure.WebJobs.Script.Config
     public class ScriptSettingsManager
     {
         private static ScriptSettingsManager _instance = new ScriptSettingsManager();
+        private readonly ConcurrentDictionary<string, string> _settingsCache = new ConcurrentDictionary<string, string>();
+        private Func<IConfiguration> _configurationFactory = BuildConfiguration;
+        private Lazy<IConfiguration> _configuration = new Lazy<IConfiguration>(BuildConfiguration);
 
-        public ScriptSettingsManager(IConfiguration config = null)
+        // for testing
+        public ScriptSettingsManager()
         {
-            Configuration = config ?? BuildDefaultConfiguration();
         }
 
         /// <summary>
         /// Gets the underlying configuration object used by this instance of the <see cref="ScriptSettingsManager"/>.
         /// </summary>
-        internal IConfiguration Configuration { get;  }
+        internal IConfiguration Configuration => _configuration.Value;
 
         public static ScriptSettingsManager Instance
         {
@@ -26,35 +30,54 @@ namespace Microsoft.Azure.WebJobs.Script.Config
             set { _instance = value; }
         }
 
-        /// <summary>
-        /// Gets a value indicating whether we are running in App Service
-        /// </summary>
-        public virtual bool IsAppServiceEnvironment => !string.IsNullOrEmpty(GetSetting(EnvironmentSettingNames.AzureWebsiteInstanceId));
+        public virtual bool IsAzureEnvironment => !string.IsNullOrEmpty(GetSetting(EnvironmentSettingNames.AzureWebsiteInstanceId));
+
+        public bool IsRemoteDebuggingEnabled => !string.IsNullOrEmpty(GetSetting(EnvironmentSettingNames.RemoteDebuggingPort));
+
+        public virtual bool IsZipDeployment => !string.IsNullOrEmpty(GetSetting(EnvironmentSettingNames.AzureWebsiteZipDeployment));
+
+        public virtual bool ContainerReady => !string.IsNullOrEmpty(GetSetting(EnvironmentSettingNames.AzureWebsiteContainerReady));
 
         public string WebsiteSku => GetSetting(EnvironmentSettingNames.AzureWebsiteSku);
 
         public bool IsDynamicSku => WebsiteSku == ScriptConstants.DynamicSku;
 
+        public virtual bool FileSystemIsReadOnly => IsZipDeployment;
+
+        public bool IsLinuxContainer
+        {
+            get
+            {
+                return true;
+
+                // TEMP
+                // return !IsAzureEnvironment && !string.IsNullOrEmpty(GetSetting(EnvironmentSettingNames.ContainerName));
+            }
+        }
+
         public virtual string AzureWebsiteDefaultSubdomain
         {
             get
             {
-                string siteHostName = GetSetting(EnvironmentSettingNames.AzureWebsiteHostName);
-
-                int? periodIndex = siteHostName?.IndexOf('.');
-                if (periodIndex != null && periodIndex > 0)
+                return _settingsCache.GetOrAdd(nameof(AzureWebsiteDefaultSubdomain), k =>
                 {
-                    return siteHostName.Substring(0, periodIndex.Value);
-                }
+                    string siteHostName = GetSetting(EnvironmentSettingNames.AzureWebsiteHostName);
 
-                return null;
+                    int? periodIndex = siteHostName?.IndexOf('.');
+
+                    if (periodIndex != null && periodIndex > 0)
+                    {
+                        return siteHostName.Substring(0, periodIndex.Value);
+                    }
+
+                    return null;
+                });
             }
         }
 
         /// <summary>
         /// Gets a value that uniquely identifies the site and slot.
         /// </summary>
-        // TODO: DI (FACAVAL) Remove all usage here. Moved to EnvironmentUtility
         public virtual string AzureWebsiteUniqueSlotName
         {
             get
@@ -72,7 +95,7 @@ namespace Microsoft.Azure.WebJobs.Script.Config
             }
         }
 
-        public virtual string AzureWebsiteInstanceId
+        public virtual string InstanceId
          {
              get
              {
@@ -85,8 +108,41 @@ namespace Microsoft.Azure.WebJobs.Script.Config
 
         public virtual string ApplicationInsightsInstrumentationKey
         {
-            get => GetSetting(EnvironmentSettingNames.AppInsightsInstrumentationKey);
-            set => SetSetting(EnvironmentSettingNames.AppInsightsInstrumentationKey, value);
+            get => GetSettingFromCache(EnvironmentSettingNames.AppInsightsInstrumentationKey);
+            set => UpdateSettingInCache(EnvironmentSettingNames.AppInsightsInstrumentationKey, value);
+        }
+
+        public void SetConfigurationFactory(Func<IConfiguration> configurationRootFactory)
+        {
+            _configurationFactory = configurationRootFactory;
+            Reset();
+        }
+
+        private string GetSettingFromCache(string settingKey)
+        {
+            if (string.IsNullOrEmpty(settingKey))
+            {
+                throw new ArgumentNullException(nameof(settingKey));
+            }
+
+            return _settingsCache.GetOrAdd(settingKey, (key) => GetSetting(key));
+        }
+
+        private void UpdateSettingInCache(string settingKey, string settingValue)
+        {
+            if (string.IsNullOrEmpty(settingKey))
+            {
+                throw new ArgumentNullException(nameof(settingKey));
+            }
+
+            _settingsCache.AddOrUpdate(settingKey, settingValue, (a, b) => settingValue);
+        }
+
+        public virtual void Reset()
+        {
+            _configuration = new Lazy<IConfiguration>(_configurationFactory);
+
+            _settingsCache.Clear();
         }
 
         public virtual string GetSetting(string settingKey)
@@ -104,19 +160,17 @@ namespace Microsoft.Azure.WebJobs.Script.Config
             if (!string.IsNullOrEmpty(settingKey))
             {
                 Environment.SetEnvironmentVariable(settingKey, settingValue);
+                Reset();
             }
         }
 
-        public static IConfiguration BuildDefaultConfiguration()
+        private static IConfigurationRoot BuildConfiguration()
         {
-            return CreateDefaultConfigurationBuilder().Build();
-        }
-
-        internal static IConfigurationBuilder CreateDefaultConfigurationBuilder()
-        {
-            return new ConfigurationBuilder()
+            var configurationBuilder = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: true)
-                .Add(new ScriptEnvironmentVariablesConfigurationSource());
+                .AddEnvironmentVariables();
+
+            return configurationBuilder.Build();
         }
     }
 }
