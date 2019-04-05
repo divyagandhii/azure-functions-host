@@ -54,5 +54,6 @@ namespace Microsoft.Azure.WebJobs.Script
         public const string CoreToolsEnvironment = "FUNCTIONS_CORETOOLS_ENVIRONMENT";
 
         public const string ExtensionBundleSourceUri = "FUNCTIONS_EXTENSIONBUNDLE_SOURCE_URI";
+        public const string HostIpAddress = "HOST_IP";
     }
 }

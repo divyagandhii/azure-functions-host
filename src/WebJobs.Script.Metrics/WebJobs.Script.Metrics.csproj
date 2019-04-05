@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
     <AssemblyName>Microsoft.Azure.WebJobs.Script.Metrics</AssemblyName>
     <RootNamespace>Microsoft.Azure.WebJobs.Script.Metrics</RootNamespace>
   </PropertyGroup>
@@ -10,6 +10,10 @@
     <Reference Include="System">
       <HintPath>System</HintPath>
     </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
 
 </Project>

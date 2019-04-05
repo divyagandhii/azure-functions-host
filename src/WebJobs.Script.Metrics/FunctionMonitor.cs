@@ -1,8 +1,13 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net.Http;
 using System.Runtime.Serialization;
 using System.Threading;
+using Microsoft.Azure.WebJobs.Script.WebHost.Diagnostics;
 
 namespace Microsoft.Azure.WebJobs.Script.Metrics
 {
@@ -21,10 +26,15 @@ namespace Microsoft.Azure.WebJobs.Script.Metrics
         private Timer _functionMetricsTimer;
         private object _lock = new object();
 
-        public FunctionMonitor(IMetricsPublisher metricsPublisher, IAnalyticsPublisher analyticsPublisher)
+        private const string FunctionExecutionTimeMetric = "FunctionExecutionTime";
+        private const string FunctionExecutionUnitsMetric = "FunctionExecutionUnits";
+        private const string FunctionExecutionCountMetric = "FunctionExecutionCount";
+        private const string FunctionContainerSizeMetric = "FunctionContainerSize";
+
+        public FunctionMonitor(HttpClient httpClient)
         {
-            _metricsPublisher = metricsPublisher;
-            _analyticsPublisher = analyticsPublisher;
+            _metricsPublisher = new LinuxContainerMetricsPublisher(httpClient);
+    //        _analyticsPublisher = analyticsPublisher;
         }
 
         public void Start()
@@ -59,13 +69,11 @@ namespace Microsoft.Azure.WebJobs.Script.Metrics
 
             if (activitySnapshot != null)
             {
-                // TODO: any other events to publish?
-
                 // publish the data
-                _metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, "FunctionExecutionTime", activitySnapshot.FunctionExecutionTimeInMs);
-                _metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, "FunctionExecutionUnits", activitySnapshot.FunctionExecutionUnits);
-                _metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, "FunctionExecutionCount", activitySnapshot.FunctionExecutionCount);
-                //_metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, "FunctionContainerSize", activitySnapshot.FunctionContainerSizeInMb);
+                _metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, FunctionExecutionTimeMetric, activitySnapshot.FunctionExecutionTimeInMs);
+                _metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, FunctionExecutionUnitsMetric, activitySnapshot.FunctionExecutionUnits);
+                _metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, FunctionExecutionCountMetric, activitySnapshot.FunctionExecutionCount);
+                _metricsPublisher.Publish(activitySnapshot.TimestampUtc, MetricNamespace, FunctionContainerSizeMetric, activitySnapshot.FunctionContainerSizeInMb);
             }
         }
 
