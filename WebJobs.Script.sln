@@ -283,8 +283,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "HttpTrigger-Identities", "H
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebJobs.Script.Metrics", "src\WebJobs.Script.Metrics\WebJobs.Script.Metrics.csproj", "{0CC3AF92-B5AB-469A-966C-59FA4291AD5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebJobs.Script.Metrics.Tests", "test\WebJobs.Script.Metrics.Tests\WebJobs.Script.Metrics.Tests.csproj", "{1B18A9DA-498A-46E4-A47F-788D7369DD70}"
-EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		test\WebJobs.Script.Tests.Shared\WebJobs.Script.Tests.Shared.projitems*{35c9ccb7-d8b6-4161-bb0d-bcfa7c6dcffb}*SharedItemsImports = 13
@@ -394,7 +392,6 @@ Global
 		{B773D1BC-495A-45CD-82CF-393A698FD958} = {9D87C796-7914-4A43-B843-579562393E10}
 		{DCBE49B4-CE2C-4D44-8DD9-2B771343E1C6} = {34506711-9D66-41EF-BBA1-9A9DC1140209}
 		{0CC3AF92-B5AB-469A-966C-59FA4291AD5D} = {16351B76-87CA-4A8C-80A1-3DD83A0C4AA6}
-		{1B18A9DA-498A-46E4-A47F-788D7369DD70} = {AFB0F5F7-A612-4F4A-94DD-8B69CABF7970}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85400884-5FFD-4C27-A571-58CB3C8CAAC5}

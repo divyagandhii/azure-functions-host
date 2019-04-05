@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Logging;
+using Microsoft.Azure.WebJobs.Script.Metrics;
 using Microsoft.Azure.WebJobs.Script.Scale;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,6 +25,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
         private readonly ILogger _logger;
         private readonly IEnvironment _environment;
         private readonly HostPerformanceManager _performanceManager;
+        private readonly IFunctionMonitor _functionsMonitor;
         private readonly IOptions<HostHealthMonitorOptions> _healthMonitorOptions;
         private readonly SlidingWindow<bool> _healthCheckWindow;
         private readonly Timer _hostHealthCheckTimer;
@@ -36,7 +38,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
         public WebJobsScriptHostService(IOptionsMonitor<ScriptApplicationHostOptions> applicationHostOptions, IScriptHostBuilder scriptHostBuilder, ILoggerFactory loggerFactory, IServiceProvider rootServiceProvider,
             IServiceScopeFactory rootScopeFactory, IScriptWebHostEnvironment scriptWebHostEnvironment, IEnvironment environment,
-            HostPerformanceManager hostPerformanceManager, IOptions<HostHealthMonitorOptions> healthMonitorOptions)
+            HostPerformanceManager hostPerformanceManager, IOptions<HostHealthMonitorOptions> healthMonitorOptions, IFunctionMonitor functionsMonitor)
         {
             if (loggerFactory == null)
             {
@@ -50,6 +52,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
             _environment = environment ?? throw new ArgumentNullException(nameof(environment));
             _performanceManager = hostPerformanceManager ?? throw new ArgumentNullException(nameof(hostPerformanceManager));
             _healthMonitorOptions = healthMonitorOptions ?? throw new ArgumentNullException(nameof(healthMonitorOptions));
+            _functionsMonitor = functionsMonitor ?? throw new ArgumentNullException(nameof(functionsMonitor));
             _logger = loggerFactory.CreateLogger(ScriptConstants.LogCategoryHostGeneral);
 
             State = ScriptHostState.Default;
@@ -59,6 +62,8 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                 _healthCheckWindow = new SlidingWindow<bool>(_healthMonitorOptions.Value.HealthCheckWindow);
                 _hostHealthCheckTimer = new Timer(OnHostHealthCheckTimer, null, TimeSpan.Zero, _healthMonitorOptions.Value.HealthCheckInterval);
             }
+
+            _functionsMonitor.Start();
         }
 
         [Flags]

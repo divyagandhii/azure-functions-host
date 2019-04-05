@@ -7,11 +7,10 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
-using Microsoft.Azure.WebJobs.Script.Metrics;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Microsoft.Azure.WebJobs.Script.WebHost.Diagnostics
+namespace Microsoft.Azure.WebJobs.Script.Metrics
 {
     public class LinuxContainerMetricsPublisher : IMetricsPublisher
     {
@@ -27,19 +26,14 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Diagnostics
             _metricsPublisherTimer = new Timer(OnFunctionMetricsPublishTimer, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(30 * 100));
             _hostRequestUri = BuildRequestUri();
             _metrics = new BlockingCollection<FunctionMetric>(new ConcurrentQueue<FunctionMetric>());
+            Console.WriteLine("Publishing metrics");
         }
 
-        public void Publish(DateTime timeStampUtc, string metricNamespace, string metricName, long data, bool skipIfZero = true)
+        public void Publish(DateTime timeStampUtc, string metricName, long data)
         {
-            if (data == 0 && skipIfZero)
-            {
-                return;
-            }
-
             var metric = new FunctionMetric
             {
                 TimestampUtc = timeStampUtc,
-                MetricNamespace = metricNamespace,
                 MetricName = metricName,
                 MetricValue = data
             };
@@ -49,10 +43,15 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Diagnostics
 
         private string BuildRequestUri()
         {
-            var protocol = "https";
             var hostname = Environment.GetEnvironmentVariable("HOST_IP");
-            var requestUri = $"{protocol}://{hostname}/{_portNumber}/api/metrics/postMetric";
-            return requestUri;
+
+            if (!string.IsNullOrEmpty(hostname))
+            {
+                var protocol = "https";
+                var requestUri = $"{protocol}://{hostname}/{_portNumber}/api/metrics/postMetric";
+                return requestUri;
+            }
+            return string.Empty;
         }
 
         private void OnFunctionMetricsPublishTimer(object state)
@@ -90,8 +89,6 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Diagnostics
     public class FunctionMetric
     {
         public DateTime TimestampUtc;
-
-        public string MetricNamespace;
 
         public string MetricName;
 
