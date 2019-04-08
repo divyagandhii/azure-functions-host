@@ -19,18 +19,15 @@ namespace Microsoft.Azure.WebJobs.Script.Metrics
         private Timer _metricsPublisherTimer;
         private BlockingCollection<FunctionMetric> _metrics;
         private HttpClient _httpClient;
-        private ILogger _logger;
         private const string _portNumber = "";
 
-        public LinuxContainerMetricsPublisher(HttpClient httpClient, ILogger logger)
+        public LinuxContainerMetricsPublisher(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _logger = logger;
             _metricsPublisherTimer = new Timer(OnFunctionMetricsPublishTimer, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(30 * 100));
             _hostRequestUri = BuildRequestUri();
             _metrics = new BlockingCollection<FunctionMetric>(new ConcurrentQueue<FunctionMetric>());
-            //Console.WriteLine("Publishing metrics");
-            _logger.Log(LogLevel.Information, "Initializing metrics publisher");
+            Console.WriteLine("Initializing Publishing metrics");
         }
 
         public void Publish(DateTime timeStampUtc, string metricName, long data)
@@ -76,6 +73,7 @@ namespace Microsoft.Azure.WebJobs.Script.Metrics
                     request.Content = new StringContent(content, Encoding.UTF8, "application/json");
                     _httpClient.SendAsync(request);
                 }
+                Console.WriteLine(string.Format("Publishing host metrics to  : {0}", _hostRequestUri));
             }
         }
 

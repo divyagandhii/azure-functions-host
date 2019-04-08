@@ -1,7 +1,6 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.Net.Http;
@@ -15,9 +14,9 @@ namespace Microsoft.Azure.WebJobs.Script.Metrics
         private Process _process;
         private Timer _processMonitorTimer;
 
-        public FunctionMonitor(HttpClient httpClient, ILoggerFactory loggerFactory)
+        public FunctionMonitor(HttpClient httpClient)
         {
-            _metricsPublisher = new LinuxContainerMetricsPublisher(httpClient, loggerFactory.CreateLogger("Host.Metrics"));
+            _metricsPublisher = new LinuxContainerMetricsPublisher(httpClient);
             Console.WriteLine("Function monitor initialized");
         }
 
