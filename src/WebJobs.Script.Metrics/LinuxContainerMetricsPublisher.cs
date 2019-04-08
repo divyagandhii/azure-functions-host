@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -18,15 +19,18 @@ namespace Microsoft.Azure.WebJobs.Script.Metrics
         private Timer _metricsPublisherTimer;
         private BlockingCollection<FunctionMetric> _metrics;
         private HttpClient _httpClient;
+        private ILogger _logger;
         private const string _portNumber = "";
 
-        public LinuxContainerMetricsPublisher(HttpClient httpClient)
+        public LinuxContainerMetricsPublisher(HttpClient httpClient, ILogger logger)
         {
             _httpClient = httpClient;
+            _logger = logger;
             _metricsPublisherTimer = new Timer(OnFunctionMetricsPublishTimer, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(30 * 100));
             _hostRequestUri = BuildRequestUri();
             _metrics = new BlockingCollection<FunctionMetric>(new ConcurrentQueue<FunctionMetric>());
-            Console.WriteLine("Publishing metrics");
+            //Console.WriteLine("Publishing metrics");
+            _logger.Log(LogLevel.Information, "Initializing metrics publisher");
         }
 
         public void Publish(DateTime timeStampUtc, string metricName, long data)
